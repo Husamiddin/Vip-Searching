@@ -1,0 +1,1395 @@
+<!doctype html>
+<html lang="uz" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Search Portal</title>
+  <meta name="description" content="Single-file search portal with auth gating, email verification, 3 languages, dark mode." />
+  <style>
+    :root{
+      --bg:#ffffff;
+      --text:#101828;
+      --muted:#667085;
+      --border:#e4e7ec;
+      --shadow: 0 14px 40px rgba(16,24,40,.12);
+      --pill:#f2f4f7;
+      --btn:#1a73e8;
+      --btnText:#fff;
+      --card:#ffffff;
+      --danger:#d92d20;
+      --ok:#12b76a;
+      --focus: 0 0 0 4px rgba(26,115,232,.18);
+      --link:#1a73e8;
+      --logo:#1f2937;
+      --soft:#f8fafc;
+    }
+    [data-theme="dark"]{
+      --bg:#0b1220;
+      --text:#e6e8ee;
+      --muted:#98a2b3;
+      --border:#25324a;
+      --shadow: 0 16px 50px rgba(0,0,0,.55);
+      --pill:#111b2e;
+      --btn:#4c8dff;
+      --btnText:#0b1220;
+      --card:#0f172a;
+      --danger:#ff6b5a;
+      --ok:#4ade80;
+      --focus: 0 0 0 4px rgba(76,141,255,.18);
+      --link:#86b0ff;
+      --logo:#e5e7eb;
+      --soft:#0b162b;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font: 14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    a{color:var(--link); text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    /* Top bar */
+    .topbar{
+      position:sticky; top:0;
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      padding:12px 16px;
+      gap:10px;
+      background:linear-gradient(to bottom, rgba(255,255,255,.9), rgba(255,255,255,.72));
+      border-bottom:1px solid rgba(228,231,236,.6);
+      backdrop-filter: blur(10px);
+    }
+    [data-theme="dark"] .topbar{
+      background:linear-gradient(to bottom, rgba(11,18,32,.92), rgba(11,18,32,.72));
+      border-bottom:1px solid rgba(37,50,74,.6);
+    }
+    .topbar .link{font-size:13px; color:var(--text); opacity:.9}
+    .topbar .link:hover{opacity:1}
+    .chip{
+      border:1px solid var(--border);
+      background:var(--card);
+      padding:8px 10px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .chip:hover{box-shadow:var(--shadow)}
+    .avatar{
+      width:34px;height:34px;border-radius:50%;
+      display:grid;place-items:center;
+      background:radial-gradient(circle at 30% 20%, rgba(26,115,232,.35), transparent 55%),
+                 radial-gradient(circle at 70% 70%, rgba(99,102,241,.28), transparent 58%),
+                 var(--soft);
+      border:1px solid var(--border);
+      font-weight:700;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    /* Main layout */
+    .wrap{
+      min-height: calc(100% - 56px);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:14px 16px 70px;
+      gap:10px;
+    }
+    .logo{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:8px;
+      margin-top:6px;
+      user-select:none;
+    }
+    .logo .word{
+      font-size:74px;
+      letter-spacing:-2px;
+      font-weight:800;
+      line-height:1;
+      color:var(--logo);
+    }
+    .logo .tag{
+      color:var(--muted);
+      font-size:13px;
+      max-width:720px;
+      text-align:center;
+    }
+
+    /* Search */
+    .searchbar{
+      width:min(680px, 92vw);
+      border:1px solid var(--border);
+      background:var(--card);
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 14px;
+      box-shadow:0 1px 0 rgba(16,24,40,.03);
+      transition: box-shadow .2s, border-color .2s, transform .2s;
+    }
+    .searchbar:focus-within{
+      box-shadow:var(--shadow);
+      border-color:rgba(26,115,232,.45);
+      transform: translateY(-1px);
+    }
+    .searchbar .ico{opacity:.75; display:flex}
+    .searchbar input{
+      border:none;
+      outline:none;
+      background:transparent;
+      color:var(--text);
+      width:100%;
+      font-size:16px;
+    }
+    .searchbar input:disabled{opacity:.6; cursor:not-allowed}
+    .kbd{
+      display:flex; align-items:center; gap:6px;
+      color:var(--muted);
+      font-size:12px;
+      user-select:none;
+    }
+    .kbd span{
+      border:1px solid var(--border);
+      background:var(--pill);
+      padding:2px 7px;
+      border-radius:8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:11px;
+    }
+    .actions{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    .btn{
+      border:1px solid var(--border);
+      background:var(--pill);
+      color:var(--text);
+      padding:10px 14px;
+      border-radius:10px;
+      cursor:pointer;
+      transition: transform .15s, box-shadow .2s;
+      user-select:none;
+    }
+    .btn:hover{box-shadow:var(--shadow); transform: translateY(-1px)}
+    .btn.primary{
+      border-color: rgba(26,115,232,.25);
+      background:var(--btn);
+      color:var(--btnText);
+    }
+    .btn:disabled{opacity:.55; cursor:not-allowed; transform:none; box-shadow:none}
+
+    /* Status */
+    .status{
+      width:min(680px, 92vw);
+      margin-top:10px;
+      border:1px solid var(--border);
+      background:var(--card);
+      border-radius:16px;
+      padding:12px 12px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .status .left{
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size:12px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:var(--pill);
+      width:max-content;
+    }
+    .dot{width:8px; height:8px; border-radius:50%}
+    .dot.ok{background:var(--ok)}
+    .dot.bad{background:var(--danger)}
+    .status .meta{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .minirow{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+    .pill{
+      border:1px solid var(--border);
+      background:var(--pill);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      color:var(--text);
+      user-select:none;
+    }
+
+    /* Footer */
+    .footer{
+      position:fixed; bottom:0; left:0; right:0;
+      padding:10px 16px;
+      border-top:1px solid rgba(228,231,236,.6);
+      background:linear-gradient(to top, rgba(255,255,255,.92), rgba(255,255,255,.70));
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      font-size:12px;
+      color:var(--muted);
+    }
+    [data-theme="dark"] .footer{
+      border-top:1px solid rgba(37,50,74,.6);
+      background:linear-gradient(to top, rgba(11,18,32,.92), rgba(11,18,32,.70));
+    }
+    .footer .right{display:flex; gap:14px; align-items:center}
+    .footer .right a{color:var(--muted)}
+    .footer .right a:hover{color:var(--text)}
+
+    /* Modal */
+    .backdrop{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.38);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      z-index:50;
+    }
+    .backdrop.show{display:flex}
+    .modal{
+      width:min(520px, 96vw);
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .modal header{
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--border);
+    }
+    .modal header .title{
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .modal header .close{
+      border:1px solid var(--border);
+      background:var(--pill);
+      color:var(--text);
+      border-radius:10px;
+      padding:6px 10px;
+      cursor:pointer;
+    }
+    .modal .content{
+      padding:14px 16px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width:560px){
+      .grid2{grid-template-columns:1fr}
+    }
+    label{display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--muted)}
+    .input{
+      border:1px solid var(--border);
+      background:var(--card);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      outline:none;
+      font-size:14px;
+    }
+    .input:focus{box-shadow:var(--focus); border-color: rgba(26,115,232,.55)}
+    .help{
+      font-size:12px;
+      color:var(--muted);
+    }
+    .alert{
+      border:1px solid var(--border);
+      background:var(--pill);
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:12px;
+      color:var(--text);
+    }
+    .alert.ok{border-color: rgba(18,183,106,.35)}
+    .alert.bad{border-color: rgba(217,45,32,.35)}
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:flex-end;
+      margin-top:2px;
+    }
+    .small{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    /* Tabs */
+    .tabs{
+      display:flex;
+      gap:8px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      background:var(--pill);
+      border-radius:14px;
+      width:max-content;
+    }
+    .tab{
+      border:1px solid transparent;
+      background:transparent;
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-size:13px;
+      user-select:none;
+    }
+    .tab.active{
+      background:var(--card);
+      border-color:var(--border);
+      box-shadow:0 1px 0 rgba(16,24,40,.04);
+    }
+
+    /* Tiny toast */
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:64px;
+      transform:translateX(-50%);
+      background:var(--card);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:13px;
+      color:var(--text);
+      display:none;
+      z-index:60;
+      max-width: min(640px, 92vw);
+    }
+    .toast.show{display:block}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="link" href="#" id="topLink1">Почта</a>
+    <a class="link" href="#" id="topLink2">Картинки</a>
+
+    <div class="chip" id="langChip" title="Language">
+      <span id="langLabel">UZ</span>
+      <span style="opacity:.75">▾</span>
+    </div>
+
+    <div class="chip" id="themeChip" title="Theme">
+      <span id="themeLabel">☀️</span>
+      <span id="themeText">Light</span>
+    </div>
+
+    <div class="avatar" id="accountBtn" title="Account">A</div>
+  </div>
+
+  <main class="wrap">
+    <div class="logo">
+    <div class="word" id="logoText"> Vip Search </div>
+
+      <div class="tag" id="tagline">
+        Qidiruvdan foydalanish uchun avval akkauntga kiring va emailni tasdiqlang.
+      </div>
+    </div>
+
+    <form class="searchbar" id="searchForm" autocomplete="off">
+      <div class="ico" aria-hidden="true">🔎</div>
+      <input id="q" type="text" placeholder="Qidiruv..." />
+      <div class="kbd" title="Hotkeys">
+        <span>Ctrl</span><span>K</span>
+      </div>
+    </form>
+
+    <div class="actions">
+      <button class="btn primary" id="searchBtn" type="button">Qidirish</button>
+      <button class="btn" id="luckyBtn" type="button">Omad</button>
+      <button class="btn" id="accountBtn2" type="button">Akkaunt</button>
+    </div>
+
+    <section class="status" aria-live="polite">
+      <div class="left">
+        <div class="minirow">
+          <div class="badge" id="authBadge">
+            <span class="dot bad" id="authDot"></span>
+            <span id="authText">Locked</span>
+          </div>
+          <div class="pill" id="userPill">Guest</div>
+          <div class="pill" id="verifyPill">Email: Not verified</div>
+        </div>
+        <div class="meta" id="statusMeta">
+          Qidiruv bloklangan: Login + Email tasdiqlash kerak.
+        </div>
+      </div>
+      <div class="right">
+        <button class="btn" id="logoutBtn" type="button" style="display:none">Logout</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div id="country">Oʻzbekiston</div>
+    <div class="right">
+      <a href="#" id="footerLink1">Reklama</a>
+      <a href="#" id="footerLink2">Biznes</a>
+      <a href="#" id="footerLink3">Qidiruv qanday ishlaydi</a>
+      <a href="#" id="footerLink4">Maxfiylik</a>
+      <a href="#" id="footerLink5">Sozlamalar</a>
+    </div>
+  </footer>
+
+  <!-- Account Modal -->
+  <div class="backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <header>
+        <div class="title" id="modalTitle">Akkaunt</div>
+        <button class="close" id="closeModal" type="button">✕</button>
+      </header>
+      <div class="content">
+        <div class="tabs" role="tablist">
+          <button class="tab active" id="tabLogin" type="button">Login</button>
+          <button class="tab" id="tabRegister" type="button">Register</button>
+          <button class="tab" id="tabVerify" type="button" style="display:none">Verify</button>
+        </div>
+
+        <div class="alert" id="modalAlert" style="display:none"></div>
+
+        <!-- Login -->
+        <div id="panelLogin">
+          <div class="grid2">
+            <label>
+              <span id="lblLoginEmail">Email</span>
+              <input class="input" id="loginEmail" type="email" placeholder="name@example.com" />
+            </label>
+            <label>
+              <span id="lblLoginPass">Password</span>
+              <input class="input" id="loginPass" type="password" placeholder="••••••••" />
+            </label>
+          </div>
+          <div class="row">
+            <div class="small" id="loginHint">Email tasdiqlanmaguncha qidiruv ishlamaydi.</div>
+            <button class="btn primary" id="doLogin" type="button">Login</button>
+          </div>
+        </div>
+
+        <!-- Register -->
+        <div id="panelRegister" style="display:none">
+          <div class="grid2">
+            <label>
+              <span id="lblRegName">Name</span>
+              <input class="input" id="regName" type="text" placeholder="Your name" maxlength="28" />
+            </label>
+            <label>
+              <span id="lblRegEmail">Email</span>
+              <input class="input" id="regEmail" type="email" placeholder="name@example.com" />
+            </label>
+            <label>
+              <span id="lblRegPass">Password</span>
+              <input class="input" id="regPass" type="password" placeholder="Min 8 chars" />
+            </label>
+            <label>
+              <span id="lblRegPass2">Confirm</span>
+              <input class="input" id="regPass2" type="password" placeholder="Repeat password" />
+            </label>
+          </div>
+
+          <div class="alert" id="emailModeBox">
+            <b id="emailModeTitle">Email mode:</b>
+            
+            
+            <div class="minirow" style="margin-top:8px">
+              <span class="pill" id="modePill">Mode: DEMO</span>
+              <button class="btn" id="toggleEmailMode" type="button">Switch Mode</button>
+            </div>
+            
+            
+          </div>
+
+          <div class="row">
+            <div class="small" id="regHint">Registerdan keyin emailga kod yuboriladi (yoki demo kod ko‘rsatiladi).</div>
+            <button class="btn primary" id="doRegister" type="button">Create account</button>
+          </div>
+        </div>
+
+        <!-- Verify -->
+        <div id="panelVerify" style="display:none">
+          <div class="alert" id="verifyInfo">
+            <div><b id="verifyTitle">Email verification</b></div>
+            <div class="help" id="verifyHelp">Emailingizga kelgan 6 xonali kodni kiriting.</div>
+          </div>
+
+          <div class="grid2">
+            <label>
+              <span id="lblCode">6-digit code</span>
+              <input class="input" id="codeInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" />
+            </label>
+            <label>
+              <span id="lblResend">Resend</span>
+              <button class="btn" id="resendBtn" type="button">Send code again</button>
+            </label>
+          </div>
+
+          <div class="row">
+            <div class="small" id="verifyHint">To‘g‘ri kod kiritsangiz qidiruv ochiladi.</div>
+            <button class="btn primary" id="doVerify" type="button">Verify</button>
+          </div>
+
+          <div class="alert" id="demoCodeBox" style="display:none"></div>
+        </div>
+
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Optional EmailJS (only used when mode=EMAILJS) -->
+<script>
+    const EMAILJS_SERVICE_ID = "service_g4cxheb";
+    const EMAILJS_TEMPLATE_ID = "template_dgx8qlr";
+    const EMAILJS_PUBLIC_KEY = "BwO2yyo5Q4JMQa941";
+</script>
+
+  <script>
+    /* ===========================
+       Senior-ish single-file app
+       - Auth gating for search
+       - LocalStorage "DB"
+       - Email verification (DEMO or EmailJS)
+       - i18n (UZ/RU/EN)
+       - Dark mode
+    ============================ */
+
+    const $ = (s, el=document) => el.querySelector(s);
+
+    const ui = {
+      q: $("#q"),
+      searchForm: $("#searchForm"),
+      searchBtn: $("#searchBtn"),
+      luckyBtn: $("#luckyBtn"),
+      accountBtn: $("#accountBtn"),
+      accountBtn2: $("#accountBtn2"),
+      logoutBtn: $("#logoutBtn"),
+      modalBackdrop: $("#modalBackdrop"),
+      closeModal: $("#closeModal"),
+      tabLogin: $("#tabLogin"),
+      tabRegister: $("#tabRegister"),
+      tabVerify: $("#tabVerify"),
+      panelLogin: $("#panelLogin"),
+      panelRegister: $("#panelRegister"),
+      panelVerify: $("#panelVerify"),
+      modalAlert: $("#modalAlert"),
+      loginEmail: $("#loginEmail"),
+      loginPass: $("#loginPass"),
+      regName: $("#regName"),
+      regEmail: $("#regEmail"),
+      regPass: $("#regPass"),
+      regPass2: $("#regPass2"),
+      doLogin: $("#doLogin"),
+      doRegister: $("#doRegister"),
+      codeInput: $("#codeInput"),
+      resendBtn: $("#resendBtn"),
+      doVerify: $("#doVerify"),
+      demoCodeBox: $("#demoCodeBox"),
+      toggleEmailMode: $("#toggleEmailMode"),
+      modePill: $("#modePill"),
+      langChip: $("#langChip"),
+      langLabel: $("#langLabel"),
+      themeChip: $("#themeChip"),
+      themeLabel: $("#themeLabel"),
+      themeText: $("#themeText"),
+      logoText: $("#logoText"),
+      tagline: $("#tagline"),
+      authBadge: $("#authBadge"),
+      authDot: $("#authDot"),
+      authText: $("#authText"),
+      userPill: $("#userPill"),
+      verifyPill: $("#verifyPill"),
+      statusMeta: $("#statusMeta"),
+      toast: $("#toast"),
+
+      // some text nodes
+      topLink1: $("#topLink1"),
+      topLink2: $("#topLink2"),
+      footerLink1: $("#footerLink1"),
+      footerLink2: $("#footerLink2"),
+      footerLink3: $("#footerLink3"),
+      footerLink4: $("#footerLink4"),
+      footerLink5: $("#footerLink5"),
+
+      // labels
+      modalTitle: $("#modalTitle"),
+      lblLoginEmail: $("#lblLoginEmail"),
+      lblLoginPass: $("#lblLoginPass"),
+      loginHint: $("#loginHint"),
+      lblRegName: $("#lblRegName"),
+      lblRegEmail: $("#lblRegEmail"),
+      lblRegPass: $("#lblRegPass"),
+      lblRegPass2: $("#lblRegPass2"),
+      regHint: $("#regHint"),
+      emailModeTitle: $("#emailModeTitle"),
+      emailModeHelp: $("#emailModeHelp"),
+      emailjsHelp: $("#emailjsHelp"),
+      verifyTitle: $("#verifyTitle"),
+      verifyHelp: $("#verifyHelp"),
+      lblCode: $("#lblCode"),
+      lblResend: $("#lblResend"),
+      verifyHint: $("#verifyHint"),
+      legalNote: $("#legalNote")
+    };
+
+    /* ========= i18n ========= */
+    const I18N = {
+      uz: {
+        logo: "Search",
+        tagline: "Qidiruvdan foydalanish uchun avval akkauntga kiring va emailni tasdiqlang.",
+        topMail: "Pochta",
+        topImg: "Rasmlar",
+        searchPh: "Qidiruv...",
+        btnSearch: "Qidirish",
+        btnLucky: "Omad",
+        btnAccount: "Akkaunt",
+        locked: "Locked",
+        unlocked: "Unlocked",
+        guest: "Mehmon",
+        emailNotVerified: "Email: Tasdiqlanmagan",
+        emailVerified: "Email: Tasdiqlangan",
+        statusLocked: "Qidiruv bloklangan: Login + Email tasdiqlash kerak.",
+        statusOpen: "Qidiruv ochiq: Google qidiruvga yuboriladi.",
+        logout: "Logout",
+
+        modalAccount: "Akkaunt",
+        tabLogin: "Login",
+        tabRegister: "Register",
+        tabVerify: "Verify",
+        email: "Email",
+        password: "Parol",
+        login: "Login",
+        name: "Ism",
+        confirm: "Tasdiqlash",
+        create: "Akkaunt yaratish",
+        loginHint: "Email tasdiqlanmaguncha qidiruv ishlamaydi.",
+        regHint: "Registerdan keyin emailga kod yuboriladi (yoki demo kod ko‘rsatiladi).",
+        modeTitle: "Email mode:",
+        
+        switchMode: "Rejimni almashtirish",
+        verifyTitle: "Email verification",
+        verifyHelp: "Emailingizga kelgan 6 xonali kodni kiriting.",
+        code: "6 xonali kod",
+        resend: "Qayta yuborish",
+        resendBtn: "Kod yuborish",
+        verifyBtn: "Tasdiqlash",
+        verifyHint: "To‘g‘ri kod kiritsangiz qidiruv ochiladi.",
+        legal: "Eslatma: Bu demo portal Google’ning rasmiy mahsuloti emas. Dizayn o‘xshash bo‘lishi mumkin, lekin 1:1 nusxa emas.",
+
+        fAd: "Reklama",
+        fBiz: "Biznes",
+        fHow: "Qidiruv qanday ishlaydi",
+        fPriv: "Maxfiylik",
+        fSet: "Sozlamalar",
+
+        needAuthTitle: "Avval login qiling",
+        needAuthMsg: "Qidiruvdan foydalanish uchun akkauntga kiring va emailni tasdiqlang.",
+        ok: "OK",
+
+        err: "Xatolik",
+        passTooShort: "Parol kamida 8 ta belgi bo‘lsin.",
+        passMismatch: "Parollar mos emas.",
+        invalidEmail: "Email noto‘g‘ri.",
+        userExists: "Bunday email allaqachon bor.",
+        badLogin: "Email yoki parol xato.",
+        codeSent: "Kod yuborildi.",
+        codeWrong: "Kod noto‘g‘ri.",
+        verifiedOk: "Email tasdiqlandi. Qidiruv ochildi!",
+        welcome: "Xush kelibsiz"
+      },
+      ru: {
+        logo: "Search",
+        tagline: "Чтобы искать, войдите в аккаунт и подтвердите email.",
+        topMail: "Почта",
+        topImg: "Картинки",
+        searchPh: "Поиск...",
+        btnSearch: "Поиск",
+        btnLucky: "Мне повезёт!",
+        btnAccount: "Аккаунт",
+        locked: "Заблокировано",
+        unlocked: "Открыто",
+        guest: "Гость",
+        emailNotVerified: "Email: Не подтверждён",
+        emailVerified: "Email: Подтверждён",
+        statusLocked: "Поиск заблокирован: нужен вход + подтверждение email.",
+        statusOpen: "Поиск открыт: отправляем запрос в Google.",
+        logout: "Выйти",
+
+        modalAccount: "Аккаунт",
+        tabLogin: "Вход",
+        tabRegister: "Регистрация",
+        tabVerify: "Подтвердить",
+        email: "Email",
+        password: "Пароль",
+        login: "Войти",
+        name: "Имя",
+        confirm: "Повтор",
+        create: "Создать аккаунт",
+        loginHint: "Пока email не подтверждён — поиск не работает.",
+        regHint: "После регистрации отправим код на email (или покажем демо-код).",
+        modeTitle: "Режим Email:",
+       
+        switchMode: "Сменить режим",
+        verifyTitle: "Подтверждение email",
+        verifyHelp: "Введите 6-значный код из письма.",
+        code: "6-значный код",
+        resend: "Повтор",
+        resendBtn: "Отправить код",
+        verifyBtn: "Подтвердить",
+        verifyHint: "После верного кода поиск откроется.",
+        legal: "Примечание: это демо-портал, не официальный продукт Google. Дизайн может быть похож, но не копия 1:1.",
+
+        fAd: "Реклама",
+        fBiz: "Для бизнеса",
+        fHow: "Как работает поиск",
+        fPriv: "Конфиденциальность",
+        fSet: "Настройки",
+
+        needAuthTitle: "Сначала войдите",
+        needAuthMsg: "Чтобы искать, войдите в аккаунт и подтвердите email.",
+        ok: "OK",
+
+        err: "Ошибка",
+        passTooShort: "Пароль должен быть минимум 8 символов.",
+        passMismatch: "Пароли не совпадают.",
+        invalidEmail: "Неверный email.",
+        userExists: "Такой email уже зарегистрирован.",
+        badLogin: "Неверный email или пароль.",
+        codeSent: "Код отправлен.",
+        codeWrong: "Неверный код.",
+        verifiedOk: "Email подтверждён. Поиск открыт!",
+        welcome: "Добро пожаловать"
+      },
+      en: {
+        logo: "Search",
+        tagline: "To search, sign in and verify your email.",
+        topMail: "Mail",
+        topImg: "Images",
+        searchPh: "Search...",
+        btnSearch: "Search",
+        btnLucky: "I'm Feeling Lucky",
+        btnAccount: "Account",
+        locked: "Locked",
+        unlocked: "Unlocked",
+        guest: "Guest",
+        emailNotVerified: "Email: Not verified",
+        emailVerified: "Email: Verified",
+        statusLocked: "Search is locked: sign in + email verification required.",
+        statusOpen: "Search is open: redirecting to Google.",
+        logout: "Logout",
+
+        modalAccount: "Account",
+        tabLogin: "Login",
+        tabRegister: "Register",
+        tabVerify: "Verify",
+        email: "Email",
+        password: "Password",
+        login: "Login",
+        name: "Name",
+        confirm: "Confirm",
+        create: "Create account",
+        loginHint: "Until email is verified, search won't work.",
+        regHint: "After register we send a code (or show demo code).",
+        modeTitle: "Email mode:",
+        
+        switchMode: "Switch mode",
+        verifyTitle: "Email verification",
+        verifyHelp: "Enter the 6-digit code from your email.",
+        code: "6-digit code",
+        resend: "Resend",
+        resendBtn: "Send code",
+        verifyBtn: "Verify",
+        verifyHint: "After correct code, search opens.",
+        legal: "Note: This is a demo portal, not an official Google product. The design can be similar but not a 1:1 copy.",
+
+        fAd: "Advertising",
+        fBiz: "Business",
+        fHow: "How Search works",
+        fPriv: "Privacy",
+        fSet: "Settings",
+
+        needAuthTitle: "Sign in first",
+        needAuthMsg: "To search, sign in and verify your email.",
+        ok: "OK",
+
+        err: "Error",
+        passTooShort: "Password must be at least 8 characters.",
+        passMismatch: "Passwords do not match.",
+        invalidEmail: "Invalid email.",
+        userExists: "That email is already registered.",
+        badLogin: "Wrong email or password.",
+        codeSent: "Code sent.",
+        codeWrong: "Wrong code.",
+        verifiedOk: "Email verified. Search unlocked!",
+        welcome: "Welcome"
+      }
+    };
+
+    const LS_KEYS = {
+      state: "googleuz_state_v1",
+      users: "googleuz_users_v1",
+      theme: "googleuz_theme_v1",
+      lang:  "googleuz_lang_v1",
+      mode:  "googleuz_email_mode_v1"
+    };
+
+    const EmailMode = { DEMO: "DEMO", EMAILJS: "EMAILJS" };
+
+    function nowISO(){ return new Date().toISOString(); }
+    function rand6(){ return String(Math.floor(100000 + Math.random()*900000)); }
+    function safeEmail(s){ return String(s||"").trim().toLowerCase(); }
+
+    function toast(msg){
+      ui.toast.textContent = msg;
+      ui.toast.classList.add("show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(()=> ui.toast.classList.remove("show"), 2400);
+    }
+
+    function loadJSON(key, fallback){
+      try{
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      }catch{ return fallback; }
+    }
+    function saveJSON(key, value){
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function getLang(){
+      return localStorage.getItem(LS_KEYS.lang) || "uz";
+    }
+    function setLang(lang){
+      localStorage.setItem(LS_KEYS.lang, lang);
+      ui.langLabel.textContent = lang.toUpperCase();
+      applyI18N();
+    }
+
+    function getTheme(){
+      return localStorage.getItem(LS_KEYS.theme) || "light";
+    }
+    function setTheme(theme){
+      localStorage.setItem(LS_KEYS.theme, theme);
+      document.documentElement.setAttribute("data-theme", theme);
+      ui.themeLabel.textContent = theme === "dark" ? "🌙" : "☀️";
+      ui.themeText.textContent = theme === "dark" ? "Dark" : "Light";
+    }
+
+    function getMode(){
+      return localStorage.getItem(LS_KEYS.mode) || EmailMode.DEMO;
+    }
+    function setMode(mode){
+      localStorage.setItem(LS_KEYS.mode, mode);
+      ui.modePill.textContent = "Mode: " + mode;
+    }
+
+    function state(){
+      return loadJSON(LS_KEYS.state, {
+        session: { email: null },
+        pending: { email: null, code: null, createdAt: null }
+      });
+    }
+    function setState(s){ saveJSON(LS_KEYS.state, s); }
+
+    function users(){
+      return loadJSON(LS_KEYS.users, []);
+    }
+    function setUsers(u){ saveJSON(LS_KEYS.users, u); }
+
+    function findUserByEmail(email){
+      const u = users();
+      return u.find(x => x.email === email) || null;
+    }
+
+    function currentUser(){
+      const s = state();
+      if(!s.session.email) return null;
+      return findUserByEmail(s.session.email);
+    }
+
+    function isUnlocked(){
+      const u = currentUser();
+      return !!(u && u.verified === true);
+    }
+
+    function applyI18N(){
+      const lang = getLang();
+      const t = I18N[lang] || I18N.uz;
+
+      ui.logoText.textContent = t.logo;
+      ui.tagline.textContent = t.tagline;
+
+      ui.topLink1.textContent = t.topMail;
+      ui.topLink2.textContent = t.topImg;
+
+      ui.q.placeholder = t.searchPh;
+      ui.searchBtn.textContent = t.btnSearch;
+      ui.luckyBtn.textContent = t.btnLucky;
+      ui.accountBtn2.textContent = t.btnAccount;
+
+      ui.footerLink1.textContent = t.fAd;
+      ui.footerLink2.textContent = t.fBiz;
+      ui.footerLink3.textContent = t.fHow;
+      ui.footerLink4.textContent = t.fPriv;
+      ui.footerLink5.textContent = t.fSet;
+
+      ui.modalTitle.textContent = t.modalAccount;
+      ui.tabLogin.textContent = t.tabLogin;
+      ui.tabRegister.textContent = t.tabRegister;
+      ui.tabVerify.textContent = t.tabVerify;
+
+      ui.lblLoginEmail.textContent = t.email;
+      ui.lblLoginPass.textContent = t.password;
+      ui.doLogin.textContent = t.login;
+      ui.loginHint.textContent = t.loginHint;
+
+      ui.lblRegName.textContent = t.name;
+      ui.lblRegEmail.textContent = t.email;
+      ui.lblRegPass.textContent = t.password;
+      ui.lblRegPass2.textContent = t.confirm;
+      ui.doRegister.textContent = t.create;
+      ui.regHint.textContent = t.regHint;
+
+      ui.emailModeTitle.textContent = t.modeTitle;
+      ui.emailModeHelp.textContent = t.modeHelp;
+      ui.toggleEmailMode.textContent = t.switchMode;
+
+      ui.verifyTitle.textContent = t.verifyTitle;
+      ui.verifyHelp.textContent = t.verifyHelp;
+      ui.lblCode.textContent = t.code;
+      ui.lblResend.textContent = t.resend;
+      ui.resendBtn.textContent = t.resendBtn;
+      ui.doVerify.textContent = t.verifyBtn;
+      ui.verifyHint.textContent = t.verifyHint;
+
+      ui.legalNote.textContent = t.legal;
+
+      refreshUI();
+    }
+
+    function showAlert(kind, msg){
+      ui.modalAlert.style.display = "block";
+      ui.modalAlert.className = "alert " + (kind === "ok" ? "ok" : kind === "bad" ? "bad" : "");
+      ui.modalAlert.textContent = msg;
+    }
+    function hideAlert(){
+      ui.modalAlert.style.display = "none";
+      ui.modalAlert.textContent = "";
+    }
+
+    function openModal(){
+      ui.modalBackdrop.classList.add("show");
+      document.body.style.overflow = "hidden";
+      hideAlert();
+      // default: if logged in but not verified -> show verify
+      const u = currentUser();
+      if(u && !u.verified){
+        setActiveTab("verify");
+      }else{
+        setActiveTab("login");
+      }
+      setTimeout(()=> ui.loginEmail.focus(), 50);
+    }
+    function closeModal(){
+      ui.modalBackdrop.classList.remove("show");
+      document.body.style.overflow = "";
+      hideAlert();
+    }
+
+    function setActiveTab(which){
+      ui.tabLogin.classList.toggle("active", which==="login");
+      ui.tabRegister.classList.toggle("active", which==="register");
+      ui.tabVerify.classList.toggle("active", which==="verify");
+
+      ui.panelLogin.style.display = which==="login" ? "" : "none";
+      ui.panelRegister.style.display = which==="register" ? "" : "none";
+      ui.panelVerify.style.display = which==="verify" ? "" : "none";
+
+      ui.tabVerify.style.display = currentUser() ? "" : "none";
+
+      if(which==="login") setTimeout(()=> ui.loginEmail.focus(), 50);
+      if(which==="register") setTimeout(()=> ui.regName.focus(), 50);
+      if(which==="verify") setTimeout(()=> ui.codeInput.focus(), 50);
+
+      // If verify panel and DEMO mode, show demo code box when available
+      if(which==="verify") refreshDemoCodeBox();
+    }
+
+    function refreshDemoCodeBox(){
+      const s = state();
+      const mode = getMode();
+      if(mode === EmailMode.DEMO && s.pending && s.pending.email && s.pending.code){
+        ui.demoCodeBox.style.display = "block";
+        ui.demoCodeBox.className = "alert ok";
+        ui.demoCodeBox.textContent = "DEMO CODE: " + s.pending.code + " (email: " + s.pending.email + ")";
+      }else{
+        ui.demoCodeBox.style.display = "none";
+        ui.demoCodeBox.textContent = "";
+      }
+    }
+
+    function refreshUI(){
+      const lang = getLang();
+      const t = I18N[lang] || I18N.uz;
+
+      const u = currentUser();
+      const unlocked = isUnlocked();
+
+      ui.q.disabled = !unlocked;
+      ui.searchBtn.disabled = !unlocked;
+      ui.luckyBtn.disabled = !unlocked;
+
+      ui.logoutBtn.style.display = u ? "" : "none";
+
+      // avatar and user pill
+      ui.userPill.textContent = u ? (u.name || u.email) : t.guest;
+      ui.verifyPill.textContent = u ? (u.verified ? t.emailVerified : t.emailNotVerified) : t.emailNotVerified;
+
+      // badge
+      ui.authText.textContent = unlocked ? t.unlocked : t.locked;
+      ui.authDot.className = "dot " + (unlocked ? "ok" : "bad");
+
+      ui.statusMeta.textContent = unlocked ? t.statusOpen : t.statusLocked;
+
+      // account avatar letter
+      const letter = u ? (String(u.name||u.email||"A")[0] || "A") : "A";
+      ui.accountBtn.textContent = letter.toUpperCase();
+
+      // verify tab visibility
+      ui.tabVerify.style.display = u ? "" : "none";
+
+      // mode pill
+      ui.modePill.textContent = "Mode: " + getMode();
+    }
+
+    function isValidEmail(email){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    // simplistic hash (demo) – in real product use server-side hashing (bcrypt/argon2)
+    async function sha256(str){
+      const enc = new TextEncoder().encode(str);
+      const buf = await crypto.subtle.digest("SHA-256", enc);
+      return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+    }
+
+    async function register(){
+      hideAlert();
+      const lang = getLang();
+      const t = I18N[lang] || I18N.uz;
+
+      const name = ui.regName.value.trim();
+      const email = safeEmail(ui.regEmail.value);
+      const pass = ui.regPass.value;
+      const pass2 = ui.regPass2.value;
+
+      if(!isValidEmail(email)) return showAlert("bad", t.invalidEmail);
+      if(pass.length < 8) return showAlert("bad", t.passTooShort);
+      if(pass !== pass2) return showAlert("bad", t.passMismatch);
+
+      const list = users();
+      if(list.some(x => x.email === email)) return showAlert("bad", t.userExists);
+
+      const passHash = await sha256(pass);
+      const newUser = {
+        id: crypto.randomUUID(),
+        name: name || email.split("@")[0],
+        email,
+        passHash,
+        verified: false,
+        createdAt: nowISO()
+      };
+      list.push(newUser);
+      setUsers(list);
+
+      // create pending verification code
+      await sendVerificationCode(email);
+
+      // auto-login session (but still locked until verified)
+      const s = state();
+      s.session.email = email;
+      setState(s);
+
+      showAlert("ok", t.welcome + ", " + (newUser.name || email) + "!");
+      setActiveTab("verify");
+      refreshUI();
+    }
+
+    async function login(){
+      hideAlert();
+      const lang = getLang();
+      const t = I18N[lang] || I18N.uz;
+
+      const email = safeEmail(ui.loginEmail.value);
+      const pass = ui.loginPass.value;
+
+      if(!isValidEmail(email)) return showAlert("bad", t.invalidEmail);
+
+      const u = findUserByEmail(email);
+      if(!u) return showAlert("bad", t.badLogin);
+
+      const passHash = await sha256(pass);
+      if(passHash !== u.passHash) return showAlert("bad", t.badLogin);
+
+      const s = state();
+      s.session.email = email;
+      setState(s);
+
+      // If not verified, keep verify tab ready
+      showAlert("ok", t.welcome + "!");
+      if(!u.verified) setActiveTab("verify");
+
+      refreshUI();
+    }
+
+    function logout(){
+      const s = state();
+      s.session.email = null;
+      setState(s);
+      refreshUI();
+      toast("Logged out");
+    }
+
+    async function sendVerificationCode(email){
+      const lang = getLang();
+      const t = I18N[lang] || I18N.uz;
+
+      const code = rand6();
+      const s = state();
+      s.pending = { email, code, createdAt: nowISO() };
+      setState(s);
+      refreshDemoCodeBox();
+
+      const mode = getMode();
+      if(mode === EmailMode.EMAILJS){
+        // Validate keys
+        if(!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY){
+          // fallback to demo and notify
+          setMode(EmailMode.DEMO);
+          toast("EmailJS keys missing → switched to DEMO");
+          return;
+        }
+        // Load EmailJS library dynamically only when needed
+        await loadEmailJS();
+        try{
+          // Template should use variables: to_email, code
+          await window.emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+            to_email: email,
+            code: code
+          }, { publicKey: EMAILJS_PUBLIC_KEY });
+          toast(t.codeSent);
+        }catch(err){
+          console.warn(err);
+          setMode(EmailMode.DEMO);
+          toast("EmailJS failed → DEMO mode");
+        }
+      }else{
+        toast(t.codeSent + " (DEMO)");
+      }
+    }
+
+    async function loadEmailJS(){
+      if(window.emailjs) return;
+      await new Promise((resolve, reject)=>{
+        const sc = document.createElement("script");
+        sc.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
+        sc.onload = resolve;
+        sc.onerror = reject;
+        document.head.appendChild(sc);
+      });
+    }
+
+    function codeNotExpired(createdAtISO){
+      // 15 minutes expiry
+      const ms = Date.now() - new Date(createdAtISO).getTime();
+      return ms <= 15 * 60 * 1000;
+    }
+
+    function verify(){
+      hideAlert();
+      const lang = getLang();
+      const t = I18N[lang] || I18N.uz;
+
+      const u = currentUser();
+      if(!u){
+        showAlert("bad", t.needAuthMsg);
+        return;
+      }
+
+      const s = state();
+      if(!s.pending || s.pending.email !== u.email){
+        showAlert("bad", t.codeWrong);
+        return;
+      }
+      if(!codeNotExpired(s.pending.createdAt)){
+        showAlert("bad", "Code expired. Resend.");
+        return;
+      }
+
+      const code = String(ui.codeInput.value||"").trim();
+      if(code !== s.pending.code){
+        showAlert("bad", t.codeWrong);
+        return;
+      }
+
+      // mark verified
+      const list = users();
+      const idx = list.findIndex(x => x.email === u.email);
+      if(idx >= 0){
+        list[idx].verified = true;
+        setUsers(list);
+      }
+
+      // clear pending
+      s.pending = { email:null, code:null, createdAt:null };
+      setState(s);
+
+      showAlert("ok", t.verifiedOk);
+      refreshUI();
+      toast(t.verifiedOk);
+      closeModal();
+    }
+
+    function requireUnlockedOrPrompt(){
+      if(isUnlocked()) return true;
+      const lang = getLang();
+      const t = I18N[lang] || I18N.uz;
+      toast(t.needAuthMsg);
+      openModal();
+      return false;
+    }
+
+    function doSearch(lucky=false){
+      if(!requireUnlockedOrPrompt()) return;
+      const query = String(ui.q.value||"").trim();
+      if(!query){ ui.q.focus(); return; }
+
+      // Redirect to Google search (real)
+      const url = lucky
+        ? "https://www.google.com/search?q=" + encodeURIComponent(query) + "&btnI=I"
+        : "https://www.google.com/search?q=" + encodeURIComponent(query);
+
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    function cycleLang(){
+      const current = getLang();
+      const next = current === "uz" ? "ru" : current === "ru" ? "en" : "uz";
+      setLang(next);
+      toast("Language: " + next.toUpperCase());
+    }
+
+    function toggleTheme(){
+      const theme = getTheme();
+      setTheme(theme === "dark" ? "light" : "dark");
+      toast("Theme: " + (getTheme()==="dark" ? "Dark" : "Light"));
+    }
+
+    function toggleMode(){
+      const mode = getMode();
+      const next = mode === EmailMode.DEMO ? EmailMode.EMAILJS : EmailMode.DEMO;
+      setMode(next);
+      refreshDemoCodeBox();
+      toast("Mode: " + next);
+    }
+
+    // UX: Ctrl+K to focus search (if unlocked)
+    function hotkeys(e){
+      if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k"){
+        e.preventDefault();
+        if(!requireUnlockedOrPrompt()) return;
+        ui.q.focus();
+      }
+      if(e.key === "Escape"){
+        if(ui.modalBackdrop.classList.contains("show")) closeModal();
+      }
+    }
+
+    /* ===== Events ===== */
+    ui.searchForm.addEventListener("submit", (e)=>{
+      e.preventDefault();
+      doSearch(false);
+    });
+    ui.searchBtn.addEventListener("click", ()=> doSearch(false));
+    ui.luckyBtn.addEventListener("click", ()=> doSearch(true));
+
+    ui.accountBtn.addEventListener("click", openModal);
+    ui.accountBtn2.addEventListener("click", openModal);
+    ui.closeModal.addEventListener("click", closeModal);
+    ui.modalBackdrop.addEventListener("click", (e)=>{
+      if(e.target === ui.modalBackdrop) closeModal();
+    });
+
+    ui.tabLogin.addEventListener("click", ()=> setActiveTab("login"));
+    ui.tabRegister.addEventListener("click", ()=> setActiveTab("register"));
+    ui.tabVerify.addEventListener("click", ()=> setActiveTab("verify"));
+
+    ui.doRegister.addEventListener("click", register);
+    ui.doLogin.addEventListener("click", login);
+    ui.logoutBtn.addEventListener("click", logout);
+
+    ui.resendBtn.addEventListener("click", async ()=>{
+      const u = currentUser();
+      if(!u) return openModal();
+      await sendVerificationCode(u.email);
+      refreshDemoCodeBox();
+    });
+    ui.doVerify.addEventListener("click", verify);
+
+    ui.toggleEmailMode.addEventListener("click", toggleMode);
+
+    ui.langChip.addEventListener("click", cycleLang);
+    ui.themeChip.addEventListener("click", toggleTheme);
+
+    document.addEventListener("keydown", hotkeys);
+
+    // If user starts typing while locked, open modal
+    ui.q.addEventListener("focus", ()=>{
+      if(!isUnlocked()) openModal();
+    });
+
+    /* ===== Init ===== */
+    (function init(){
+      setTheme(getTheme());
+      setLang(getLang());
+      setMode(getMode());
+      refreshUI();
+    })();
+  </script>
+</body>
+</html>
